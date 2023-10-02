@@ -10,6 +10,7 @@
       with_items:
         - enable_configfs_{{ enable_configfs | default('true') | bool }}
       tags: always
+      changed_when: false
 
 - name: Apply role configfs
   hosts:
@@ -18,8 +19,5 @@
   serial: "{{ osism_serial['configs']|default(osism_serial_default)|default(0) }}"
   strategy: "{{ osism_strategy|default('linear') }}"
 
-  collections:
-    - osism.commons
-
   roles:
-    - role: configfs
+    - role: osism.commons.configfs

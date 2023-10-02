@@ -8,10 +8,12 @@ authors:
 description: OSISM playbooks
 license_file: LICENSE
 tags:
+  - infrastructure
+  - cloud
   - osism
   - system
 dependencies: {}
 repository: https://github.com/osism/ansible-playbooks.git
-documentation: https://docs.osism.tech
+documentation: https://osism.github.io/docs/intro/
 homepage: https://www.osism.tech
 issues: https://github.com/osism/ansible-playbooks/issues

@@ -10,6 +10,7 @@
       with_items:
         - enable_patchman_client_{{ enable_patchman_client | default('true') | bool }}
       tags: always
+      changed_when: false
 
 - name: Apply role patchman_client
   hosts:
@@ -18,8 +19,5 @@
   serial: "{{ osism_serial['patchman_client']|default('0') }}"
   strategy: "{{ osism_strategy|default('linear') }}"
 
-  collections:
-    - osism.services
-
   roles:
-    - role: patchman_client
+    - role: osism.services.patchman_client

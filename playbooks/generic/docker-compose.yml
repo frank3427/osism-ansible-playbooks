@@ -10,6 +10,7 @@
       with_items:
         - enable_docker_{{ enable_docker | default('true') | bool }}
       tags: always
+      changed_when: false
 
 - name: Apply role docker_compose
   hosts:
@@ -18,8 +19,5 @@
   serial: "{{ osism_serial['docker_compose']|default('0') }}"
   strategy: "{{ osism_strategy|default('linear') }}"
 
-  collections:
-    - osism.commons
-
   roles:
-    - role: docker_compose
+    - role: osism.commons.docker_compose

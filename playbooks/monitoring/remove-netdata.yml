@@ -19,7 +19,7 @@
   strategy: "{{ osism_strategy|default('linear') }}"
 
   tasks:
-    - name: Stop/disable service
+    - name: Stop/disable service  # noqa: ignore-errors
       become: true
       ansible.builtin.systemd:
         enabled: false
@@ -27,18 +27,12 @@
         name: netdata
       ignore_errors: true
 
-    - name: Wait for apt lock
-      ansible.builtin.shell: "while fuser /var/lib/dpkg/{{ item }} >/dev/null 2>&1; do sleep 5; done;"
-      loop:
-        - lock
-        - lock-frontend
-      changed_when: false
-
     - name: Remove package
       become: true
       ansible.builtin.apt:
         name: netdata
         state: absent
+        lock_timeout: "{{ apt_lock_timeout | default(300) }}"
 
     - name: Remove directories and files
       become: true

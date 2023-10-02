@@ -5,11 +5,8 @@
   serial: "{{ osism_serial['facts']|default(osism_serial_default)|default(0) }}"
   strategy: "{{ osism_strategy|default('linear') }}"
 
-  collections:
-    - osism.commons
-
   roles:
-    - role: facts
+    - role: osism.commons.facts
 
 - name: Gather facts for all hosts
   ignore_unreachable: true
@@ -19,3 +16,5 @@
   tasks:
     - name: Gathers facts about hosts
       ansible.builtin.setup:
+        filter: "{{ osism_setup_filter | default('') }}"
+        gather_subset: "{{ osism_setup_gather_subset | default('all') }}"

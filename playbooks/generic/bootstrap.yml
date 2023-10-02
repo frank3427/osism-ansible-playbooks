@@ -7,6 +7,7 @@
     - name: Group hosts based on state bootstrap
       ansible.builtin.group_by:
         key: state_bootstrap_{{ ansible_local.osism.bootstrap.status | default("False") | bool }}
+      changed_when: false
 
 - name: Gather facts for all hosts
   ignore_unreachable: true
@@ -17,6 +18,8 @@
   tasks:
     - name: Gathers facts about hosts
       ansible.builtin.setup:
+        filter: "{{ osism_setup_filter | default('') }}"
+        gather_subset: "{{ osism_setup_gather_subset | default('all') }}"
 
 - name: Gather facts for all hosts (if using --limit)
   ignore_unreachable: true
@@ -26,6 +29,8 @@
   tasks:
     - name: Gathers facts about hosts
       ansible.builtin.setup:
+        filter: "{{ osism_setup_filter | default('') }}"
+        gather_subset: "{{ osism_setup_gather_subset | default('all') }}"
       delegate_facts: true
       delegate_to: "{{ item }}"
       with_items: "{{ groups['all'] }}"
@@ -38,33 +43,31 @@
   serial: "{{ osism_serial_default | default(0) }}"
   strategy: "{{ osism_strategy | default('free') }}"
 
-  collections:
-    - osism.commons
-    - osism.services
-
   roles:
-    - role: hostname
-    - role: hosts
-    - role: proxy
-    - role: resolvconf
-    - role: repository
-    - role: rsyslog
-    - role: systohc
-    - role: configfs
-    - role: packages
-    - role: sysctl
-    - role: services
-    - role: motd
-    - role: hddtemp
+    - role: osism.commons.hostname
+    - role: osism.commons.hosts
+    - role: osism.commons.proxy
+    - role: osism.commons.resolvconf
+      when: enable_resolvconf | default('true') | bool
+    - role: osism.commons.repository
+    - role: osism.services.rsyslog
+    - role: osism.commons.systohc
+    - role: osism.commons.configfs
+    - role: osism.commons.packages
+    - role: osism.commons.sysctl
+    - role: osism.commons.services
+    - role: osism.commons.motd
+    - role: osism.services.hddtemp
       when: ansible_lsb.major_release|int < 22
-    - role: rng
-    - role: smartd
-    - role: cleanup
-    - role: timezone
-    - role: docker
-    - role: facts
-    - role: chrony
-    - role: lldpd
+    - role: osism.services.rng
+    - role: osism.services.smartd
+    - role: osism.commons.cleanup
+    - role: osism.commons.timezone
+    - role: osism.services.docker
+    - role: osism.commons.docker_compose
+    - role: osism.commons.facts
+    - role: osism.services.chrony
+    - role: osism.services.lldpd
 
 - name: Apply bootstrap role part 2
   ignore_unreachable: true
@@ -78,7 +81,7 @@
         name: hardening
         apply:
           become: true
-      when: enable_hardening | default('true')|bool
+      when: enable_hardening | default('true') | bool
 
 - name: Apply bootstrap roles part 3
   ignore_unreachable: true
@@ -86,17 +89,14 @@
   serial: "{{ osism_serial_default | default(0) }}"
   strategy: "{{ osism_strategy | default('free') }}"
 
-  collections:
-    - osism.services
-
   tasks:
     - name: Include auditd role
       ansible.builtin.include_role:
-        name: auditd
-      when: enable_auditd | default('true')|bool
+        name: osism.services.auditd
+      when: enable_auditd | default('true') | bool
 
   roles:
-    - role: journald
+    - role: osism.services.journald
 
 - name: Set state bootstrap
   ignore_unreachable: true
@@ -104,16 +104,13 @@
   gather_facts: false
   strategy: "{{ osism_strategy | default('linear') }}"
 
-  collections:
-    - osism.commons
-
   vars:
     state_bootstrap_status: "True"
 
   tasks:
     - name: Set osism.bootstrap.status fact
       ansible.builtin.include_role:
-        name: state
+        name: osism.commons.state
       vars:
         state_name: osism
         state_section: bootstrap
@@ -123,10 +120,10 @@
 
     - name: Set osism.bootstrap.timestamp fact
       ansible.builtin.include_role:
-        name: state
+        name: osism.commons.state
       vars:
         state_name: osism
         state_section: bootstrap
         state_option: timestamp
-        state_value: "{{ ansible_date_time.iso8601 }}"
+        state_value: "{{ now(utc=True).isoformat() }}"
       when: not ansible_local.osism.bootstrap.status | default("False") | bool

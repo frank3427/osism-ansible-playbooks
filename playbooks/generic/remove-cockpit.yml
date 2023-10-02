@@ -10,6 +10,7 @@
       with_items:
         - enable_cockpit_{{ enable_cockpit | default('true') | bool }}
       tags: always
+      changed_when: false
 
 - name: Remove cockpit
   hosts:
@@ -19,7 +20,7 @@
   strategy: "{{ osism_strategy|default('linear') }}"
 
   tasks:
-    - name: Stop/disable services
+    - name: Stop/disable services  # noqa: ignore-errors
       become: true
       ansible.builtin.systemd:
         enabled: false
@@ -30,18 +31,12 @@
         - cockpit.socket
       ignore_errors: true
 
-    - name: Wait for apt lock
-      ansible.builtin.shell: "while fuser /var/lib/dpkg/{{ item }} >/dev/null 2>&1; do sleep 5; done;"
-      loop:
-        - lock
-        - lock-frontend
-      changed_when: false
-
     - name: Remove packages
       become: true
       ansible.builtin.apt:
         name: "{{ item }}"
         state: absent
+        lock_timeout: "{{ apt_lock_timeout | default(300) }}"
       loop:
         - cockpit-bridge
         - cockpit-storaged

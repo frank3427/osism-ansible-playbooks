@@ -10,6 +10,7 @@
       with_items:
         - enable_trivy_{{ enable_trivy | default('false') | bool }}
       tags: always
+      changed_when: false
 
 - name: Apply role trivy
   hosts:
@@ -17,8 +18,5 @@
     - "&enable_trivy_True"
   serial: "{{ osism_serial['trivy']|default('0') }}"
 
-  collections:
-    - osism.commons
-
   roles:
-    - role: trivy
+    - role: osism.commons.trivy
