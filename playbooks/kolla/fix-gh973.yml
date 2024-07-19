@@ -1,0 +1,33 @@
+# https://github.com/osism/issues/issues/973
+# https://bugs.launchpad.net/kolla-ansible/+bug/2048130
+# https://review.opendev.org/c/openstack/kolla-ansible/+/904805
+---
+- name: Fix for osism/issues#973
+  hosts: "{{ hosts_fix_973|default('common') }}"
+
+  tasks:
+    - name: Get all kolla unit files
+      ansible.builtin.find:
+        paths: /etc/systemd/system
+        recurse: false
+        patterns: "kolla-.*-container.service"
+        file_type: file
+        use_regex: true
+      register: result
+
+    - name: Repair unit file
+      become: true
+      ansible.builtin.lineinfile:
+        path: "{{ item.path }}"
+        insertafter: "^RestartSec="
+        line: "SuccessExitStatus=143"
+      loop: "{{ result.files }}"
+      loop_control:
+        label: "{{ item.path }}"
+      notify: Reload systemd daemon
+
+  handlers:
+    - name: Reload systemd daemon
+      become: true
+      ansible.builtin.systemd:
+        daemon_reload: true

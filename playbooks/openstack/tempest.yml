@@ -1,0 +1,7 @@
+---
+- name: Run tempest
+  hosts: "{{ hosts_tempest|default('manager') }}"
+  gather_facts: false
+
+  roles:
+    - role: osism.validations.tempest

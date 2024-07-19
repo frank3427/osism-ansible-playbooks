@@ -1,0 +1,10 @@
+---
+- name: Do nothing
+  hosts:
+    - "{{ hosts_manager|default(groups['manager'][0])|default('localhost') }}"
+  connection: local
+
+  tasks:
+    - name: Print a noop message
+      ansible.builtin.debug:
+        msg: noop

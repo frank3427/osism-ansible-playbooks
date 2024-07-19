@@ -1,13 +1,14 @@
 ---
 - name: Confirm whether user really meant to purge the k3s cluster
-  hosts: localhost
+  hosts:
+    - "{{ hosts_manager|default(groups['manager'][0])|default('localhost') }}"
   gather_facts: false
 
   vars_prompt:
     - name: ireallymeanit
       prompt: Are you sure you want to purge the k3s cluster?
       default: 'no'
-      private: no
+      private: false
 
   tasks:
     - name: Exit playbook, if user did not mean to purge k3s cluster

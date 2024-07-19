@@ -41,7 +41,7 @@
   ignore_unreachable: true
   hosts: state_bootstrap_False
   serial: "{{ osism_serial_default | default(0) }}"
-  strategy: "{{ osism_strategy | default('free') }}"
+  strategy: "{{ osism_strategy | default('linear') }}"
 
   roles:
     - role: osism.commons.hostname
@@ -55,10 +55,9 @@
     - role: osism.commons.configfs
     - role: osism.commons.packages
     - role: osism.commons.sysctl
+    - role: osism.commons.limits
     - role: osism.commons.services
     - role: osism.commons.motd
-    - role: osism.services.hddtemp
-      when: ansible_lsb.major_release|int < 22
     - role: osism.services.rng
     - role: osism.services.smartd
     - role: osism.commons.cleanup
@@ -73,7 +72,7 @@
   ignore_unreachable: true
   hosts: state_bootstrap_False
   serial: "{{ osism_serial_default | default(0) }}"
-  strategy: "{{ osism_strategy | default('free') }}"
+  strategy: "{{ osism_strategy | default('linear') }}"
 
   tasks:
     - name: Include hardening role
@@ -87,7 +86,7 @@
   ignore_unreachable: true
   hosts: state_bootstrap_False
   serial: "{{ osism_serial_default | default(0) }}"
-  strategy: "{{ osism_strategy | default('free') }}"
+  strategy: "{{ osism_strategy | default('linear') }}"
 
   tasks:
     - name: Include auditd role
