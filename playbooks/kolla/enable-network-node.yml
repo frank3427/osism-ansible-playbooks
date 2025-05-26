@@ -1,0 +1,75 @@
+---
+- name: Enable network node
+  hosts: "{{ hosts_enable_network_node | default('none') }}"
+  gather_facts: false
+
+  vars:
+    network_services_openstack:
+      - kolla-neutron_bgp_dragent-container.service
+      - kolla-neutron_metering_agent-container.service
+      - kolla-octavia_health_manager-container.service
+      - kolla-octavia_housekeeping-container.service
+      - kolla-octavia_worker-container.service
+
+    network_services_other:
+      - octavia-interface.service
+
+    network_services_ovn:
+      - kolla-ovn_controller-container.service
+
+    network_services_ovs:
+      - kolla-openvswitch_db-container.service
+      - kolla-openvswitch_vswitchd-container.service
+
+  tasks:
+    - name: Populate service facts
+      ansible.builtin.service_facts:
+
+    - name: Start, enable and unmask ovs services
+      become: true
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+        masked: false
+      loop: "{{ network_services_ovs }}"
+      when: ansible_facts.services[item] is defined
+
+    - name: Start, enable and unmask ovn services
+      become: true
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+        masked: false
+      loop: "{{ network_services_ovn }}"
+      when: ansible_facts.services[item] is defined
+
+    - name: Start, enable and unmask other services
+      become: true
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+        masked: false
+      loop: "{{ network_services_other }}"
+      when: ansible_facts.services[item] is defined
+
+    - name: Wait for octavia interface
+      ansible.builtin.pause:
+        seconds: 30
+
+    - name: Start, enable and unmask openstack services
+      become: true
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+        masked: false
+      loop: "{{ network_services_openstack }}"
+      when: ansible_facts.services[item] is defined
+
+    - name: Gathers facts about hosts
+      ansible.builtin.setup:
+        filter: "{{ osism_setup_filter | default('') }}"
+        gather_subset: "{{ osism_setup_gather_subset | default('all') }}"

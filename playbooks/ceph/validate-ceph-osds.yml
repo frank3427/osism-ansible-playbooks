@@ -20,11 +20,10 @@
 ###
 
 - name: Ceph validate OSDs
-  hosts: ceph-osd
+  hosts: "{{ osd_group_name|default('ceph-osd') }}"
   strategy: linear
   gather_facts: true
   force_handlers: true
-
 
   vars:
     _osds_reports_directory: "/opt/reports/validator"
@@ -344,9 +343,14 @@
         _osds_test_up_in_result: "no-result"
         _osds_test_up_in_data: ""
 
+    - name: Set _mon_hostname fact
+      ansible.builtin.set_fact:
+        _mon_hostname: "{{ hostvars[groups[mon_group_name | default('ceph-mon')][0]]['ansible_hostname'] }}"
+      run_once: true
+
     - name: Get ceph osd tree
       community.docker.docker_container_exec:
-        container: "{{ _osds_containers[0].name }}"
+        container: "ceph-mon-{{ _mon_hostname }}"
         command: "ceph osd tree --format=json"
       register: _osds_tree_raw
       run_once: true
@@ -747,6 +751,7 @@
           - "{{ groups['manager'][0] }}"
       run_once: true
       delegate_to: "{{ groups['manager'][0] }}"
+
   handlers:
     - name: Write report file
       ansible.builtin.template:

@@ -1,0 +1,55 @@
+---
+- name: Validate NTP synchronization
+  hosts: "{{ hosts_chrony | default('generic') }}"
+  strategy: linear
+  gather_facts: false
+  vars:
+    max_stratum: 9
+    max_system_clock_deviation: 0.005
+    # NOTE: Usually in OSISM deployments ceph is one of the most time sensitive
+    # applications. In its default ceph starts to show warnings when it
+    # detects clock drift above 0.05 seconds between monitors [1]. Therefore,
+    # to ensure the quality of NTP time allows to keep the drift between two
+    # systems to less or equal to 0.05 seconds a default of 0.025 seconds will
+    # be used for `max_upper_clock_error_bound`.
+    #
+    # [1]: https://docs.ceph.com/en/latest/rados/configuration/mon-config-ref/#confval-mon_clock_drift_allowed
+    max_upper_clock_error_bound: "{{ max_system_clock_deviation + 0.02 }}"
+
+  tasks:
+    - name: Get chrony tracking
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/chronyc
+          - -c
+          - tracking
+      changed_when: false
+      register: tracking
+
+    - name: Check chrony tracking
+      vars:
+        _tracking: "{{ tracking.stdout | split(',') }}"
+      block:  # noqa osism-fqcn
+        - name: Assert NTP is synchronized
+          ansible.builtin.assert:
+            that: _tracking[0] != '7F7F0101'
+            fail_msg: "NTP not synchronized"
+
+        - name: Assert NTP stratum is less than desired max
+          ansible.builtin.assert:
+            that: _tracking[2] | int <= max_stratum
+            fail_msg: "{{ _tracking[2] | int }} > {{ max_stratum }}"
+
+        - name: Assert system clock offset from NTP time is less that desired max
+          ansible.builtin.assert:
+            that: _tracking[4] | float | abs <= max_system_clock_deviation | float
+            fail_msg: "{{ _tracking[4] | float | abs }} > {{ max_system_clock_deviation | float }}"
+
+        - name: Assert NTP upper bound of clock error is less than desired max
+          vars:
+            # NOTE: Calculation of upper bound of clock error was taken from `tracking` section of
+            # https://manpages.debian.org/testing/chrony/chronyc.1.en.html#System_clock
+            _clock_error: "{{ _tracking[4] | float | abs + _tracking[11] | float + 0.5 * _tracking[10] | float }}"
+          ansible.builtin.assert:
+            that: _clock_error | float <= max_upper_clock_error_bound | float
+            fail_msg: "{{ _clock_error | float }} > {{ max_upper_clock_error_bound | float }}"
